@@ -18,10 +18,9 @@ export class MainScene extends Phaser.Scene {
       frameWidth: 372,
       frameHeight: 720,
     });
-    this.load.spritesheet("ground", "assets/ground_tiles.png", {
-      frameWidth: 32,
-      frameHeight: 32,
-    });
+    // Load the professional Tilemap assets
+    this.load.image("stardew_tiles", "assets/stardew_tileset.png");
+    this.load.tilemapTiledJSON("map", "assets/map.json");
   }
 
   create() {
@@ -74,16 +73,14 @@ export class MainScene extends Phaser.Scene {
       frames: [{ key: "hero", frame: 12 }],
     });
 
-    // Create player sprite
+    // Create player sprite (on top of map)
     this.player = this.physics.add.sprite(400, 300, "hero", 0);
     this.player.setScale(0.14);
 
-    // Apply visual crop to hide fragments of adjacent frames
-    // 15px from left, 340px width (hides everything after 355px within the 372px cell)
+    // Apply visual crop
     this.player.setCrop(15, 0, 340, 720);
 
-    // Adjust collision box to precisely match the character's visual height
-    // Character is approx 630px tall (from bow at y=50 to shoes at y=680)
+    // Adjust collision box
     this.player.body.setSize(160, 630);
     this.player.body.setOffset(106, 50);
 
@@ -94,41 +91,29 @@ export class MainScene extends Phaser.Scene {
   }
 
   createMap() {
-    const mapWidth = 25;
-    const mapHeight = 20;
-    const tileSize = 32;
+    // ---------------------------------------------------------
+    // 强制 1:1 比例校准：杜绝长方形变形
+    // ---------------------------------------------------------
 
-    const fullWidth = mapWidth * tileSize;
-    const fullHeight = mapHeight * tileSize;
-
-    // Use a TileSprite for the base background to ensure PERFECT gapless rendering
-    // This will repeat frame 0 across the entire area
-    const bg = this.add.tileSprite(
-      fullWidth / 2,
-      fullHeight / 2,
-      fullWidth,
-      fullHeight,
-      "ground",
-      0, // Base grass frame
-    );
-
-    // Add some random decorative tiles on top
-    for (let i = 0; i < 30; i++) {
-        const x = Phaser.Math.Between(0, mapWidth - 1);
-        const y = Phaser.Math.Between(0, mapHeight - 1);
-        // Frames 1-3 are usually details in our generated tileset
-        const frame = Phaser.Math.Between(1, 4); 
+    const map = this.make.tilemap({
+        key: "map",
+        tileWidth: 32,
+        tileHeight: 32
+    });
+    
+    // 必须确保素材也是按 32x32 物理切割
+    const tileset = map.addTilesetImage("stardew_style", "stardew_tiles");
+    
+    if (tileset) {
+        // 创建图层并强制重置比例，防止被外界组件拉伸
+        const groundLayer = map.createLayer("Ground", tileset, 0, 0);
+        groundLayer?.setDepth(-1);
         
-        this.add.image(
-          x * tileSize + tileSize / 2,
-          y * tileSize + tileSize / 2,
-          "ground",
-          frame,
-        );
+        console.log("Map scale calibrated to 1:1");
     }
     
-    // Set world bounds to match map
-    this.physics.world.setBounds(0, 0, fullWidth, fullHeight);
+    // 强制物理世界边界
+    this.physics.world.setBounds(0, 0, 800, 640);
   }
 
   update() {

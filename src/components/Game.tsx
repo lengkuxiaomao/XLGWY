@@ -15,9 +15,13 @@ export const Game = () => {
       width: 800,
       height: 600,
       scene: [MainScene],
+      render: {
+        pixelArt: true,
+        antialias: false,
+      },
       physics: {
         default: 'arcade',
-        arcade: { debug: true }
+        arcade: { debug: false }
       }
     };
 
